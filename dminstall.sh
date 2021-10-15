@@ -176,6 +176,9 @@ bin_research()
 # nella cartella "/usr/local/bin"
 bin_linker()
 {
+   # Imposto un flag per permettere all'utente di scegliere se vuole inserire altri eseguibili o meno
+   MORE_FILES="NO"
+
    # Scorro tutti i file della directory dei bin
    for file in ${BIN_DIR}*
    do
@@ -183,6 +186,53 @@ bin_linker()
       # un collegamento nella path dei bin
       if [ -x $file ] && [ ! -d $file ] && [[ "$file" != *"."* ]]
       then
+         # Controllo se è gia stato creato un collegamento di un eseguibile nella path dei bin
+         if [ "$MORE_FILES" = "YES" ]
+         then
+            # Chiedo all'utente se vuole inserire anche l'altro eseguibile nella path dei bin
+            echo -en "E' stato trovato un altro eseguibile nella path dei bin vuoi aggiungere anch'esso alla path(S/*)?"
+            read choice
+
+            # Controllo la scelta dell'utente
+            if [ "$choice" = "s" ] || [ "$choice" = "S" ]
+            then
+               # Controllo se la modalità verbosa è attiva
+               if [ $VERBOSE = "YES" ]
+               then
+                  # Informo l'utente delle istruzioni che sto eseguendo
+                  echo "Creo un collegamento dell'eseguibile \"${file}\" nella directory \"${BIN_PATH}\""
+               fi
+
+               # Creo un collegamento nella path dei bin locali
+               # dell'eseguibile del programma
+               ln -sf "$file" "$BIN_PATH"
+
+               # Ottengo il nome dell'eseguibile
+               echo $file | cut -d"/" -f7 > /home/${MY_USERNAME}/.tempdminstall
+               LINKED_FILENAME=`head -1 /home/${MY_USERNAME}/.tempdminstall`
+
+               # Controllo se il nome dell'eseguibile è stato ottenuto correttamente
+               if [ -z $LINKED_FILENAME ]
+               then
+                  # Riottengo il nome dell'eseguibile
+                  echo $file | cut -d"/" -f6 > /home/${MY_USERNAME}/.tempdminstall
+                  LINKED_FILENAME=`head -1 /home/${MY_USERNAME}/.tempdminstall`
+               fi
+
+               # Converto il nome del file in minuscolo
+               LINKED_FILENAME=`echo $LINKED_FILENAME | tr '[:upper:]' '[:lower:]'`
+
+               # Rimuovo il file temporaneo generato
+               rm /home/${MY_USERNAME}/.tempdminstall
+            else
+               # Ignoro l'eseguibile secondario
+               continue
+            fi
+         fi
+
+         # Aggiorno il flag per permettere all'utente di scegliere se vuole inserire altri eseguibili o meno
+         MORE_FILES="YES"
+
          # Controllo se la modalità verbosa è attiva
          if [ $VERBOSE = "YES" ]
          then
@@ -205,6 +255,9 @@ bin_linker()
             echo $file | cut -d"/" -f6 > /home/${MY_USERNAME}/.tempdminstall
             LINKED_FILENAME=`head -1 /home/${MY_USERNAME}/.tempdminstall`
          fi
+
+         # Converto il nome del file in minuscolo
+         LINKED_FILENAME=`echo $LINKED_FILENAME | tr '[:upper:]' '[:lower:]'`
 
          # Rimuovo il file temporaneo generato
          rm /home/${MY_USERNAME}/.tempdminstall
