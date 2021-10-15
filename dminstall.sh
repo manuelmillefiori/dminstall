@@ -2,7 +2,7 @@
 # Autore: Manuel Millefiori
 # Data: 2021-10-08
 # Ultima modifica: 2021-10-12
-# Versione: 1.0
+# Versione: 1.1
 
 # Creazione eseguibile:
 # sudo chmod +x dminstall.sh
@@ -10,20 +10,20 @@
 # mv dminstall.sh dminstall
 
 # Specifiche: Programma che facilita l'installazione di un programma
-# archiviato e/o compattato in formato "gz", "xz", "bzip2"
+# archiviato e/o compattato in formato "gz", "xz", "bzip2", "zip"
 
-# Funzione per estrarre il contenuto del file "gz"
+# Funzione per estrarre il contenuto dell'archivio
 extract()
 {
    # Controllo se la modalità verbosa è attiva
    if [ $VERBOSE = "YES" ]
    then
       # Informo l'utente delle istruzioni che sto eseguendo
-      echo "Estrazione dei file all'interno dell'archivio in corso..."
+      echo "Estrazione della directory dall'archivio in corso..."
    fi
    # Estraggo e decompatto il file dall'archivio nella directory
    # dove ci sono tutti i dati di tutti i programmi
-   tar xvzf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > .temp.txt
+   tar xvzf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > /home/${MY_USERNAME}/.tempdminstall
 
    # Se l'estrazione tramite decompattazione di un file "tar.gz"
    # non è avvenuta correttamente, il file all'interno dell'archivio
@@ -32,7 +32,7 @@ extract()
    then
       # Estraggo e decompatto il file con un algoritmo
       # di decompattazione di un archivio "tar.xz"
-      tar xvJf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > .temp.txt
+      tar xvJf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > /home/${MY_USERNAME}/.tempdminstall
    fi
 
    # Se l'estrazione tramite decompattazione di un file "tar.gz"
@@ -42,7 +42,7 @@ extract()
    then
       # Estraggo e decompatto il file con un algoritmo
       # di decompattazione di un archivio "tar.bzip2"
-      tar xvjf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > .temp.txt
+      tar xvjf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > /home/${MY_USERNAME}/.tempdminstall
    fi
 
    # Se l'estrazione tramite decompattazione non è avvenuta
@@ -51,18 +51,35 @@ extract()
    if [ "$?" -ne "0" ]
    then
       # Estraggo il file senza decompattarlo
-      tar xvf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > .temp.txt
+      tar xvf "$ARCHIVE" -C "$DATA_PATH" 2> /dev/null > /home/${MY_USERNAME}/.tempdminstall
+   fi
+
+   # Se l'estrazione tramite decompattazione di un file "tar.bzip2"
+   # non è avvenuta correttamente, il file all'interno dell'archivio
+   # verrà estratto e decompattato come un file "zip"
+   if [ "$?" -ne "0" ]
+   then
+      # Estraggo e decompatto il file con un algoritmo
+      # di decompattazione di un archivio "zip"
+      unzip "$ARCHIVE" -d "$DATA_PATH" 2> /dev/null > /home/${MY_USERNAME}/.tempdminstall
+
+      # Imposto a "YES" la modalità "Zip Compression"
+      ZIP_COMPRESSION="YES"
    fi
 
    # Controllo se tutte e due le estrazioni sono fallite
    if [ "$?" -ne "0" ]
    then
+      # Reimposto a "NO" la modalità "Zip Compression"
+      ZIP_COMPRESSION="NO"
+
       # Informo l'utente che le estrazioni sono fallite
-      echo "Il file scelto non è un archivio supportato dal programma!"
+      echo "Il file scelto non è un archivio, oppure è un archivio non supportato dal programma! Visualizza le modalità di utilizzo:
+   sudo dminstall --help"
 
       # Rimuovo il file temporaneo che è stato generato per
       # ottenere il nome della directory estratta
-      rm .temp.txt
+      rm /home/${MY_USERNAME}/.tempdminstall
 
       # Chiudo il programma in errore con codice d'uscita "1"
       exit 1
@@ -71,15 +88,24 @@ extract()
       if [ $VERBOSE = "YES" ]
       then
          # Informo l'utente delle istruzioni che sto eseguendo
-         echo "Estrazione dei file all'interno della directory ${DATA_PATH} completata con successo!"
+         echo "Estrazione dei file all'interno della directory \"${DATA_PATH}\" completata con successo!"
       fi
 
-      # Ottengo il nome della directory estratta
-      EXTRACTED_DIRECTORY=`head -1 .temp.txt`
+      # Controllo se la modalità "Zip Compression" è impostata su "YES"
+      if [ $ZIP_COMPRESSION = "YES" ]
+      then
+         # Ottengo l'url della directory estratta
+         URL_EXTRACTED_DIRECTORY=`head -2 /home/${MY_USERNAME}/.tempdminstall`
+         URL_EXTRACTED_DIRECTORY=${URL_EXTRACTED_DIRECTORY#*   creating: }
+      else
+         # Ottengo il nome della directory estratta
+         EXTRACTED_DIRECTORY=`head -1 /home/${MY_USERNAME}/.tempdminstall | cut -d"/" -f1`
+         EXTRACTED_DIRECTORY="${EXTRACTED_DIRECTORY}/"
+      fi
 
       # Rimuovo il file temporaneo che è stato generato per
       # ottenere il nome della directory estratta
-      rm .temp.txt
+      rm /home/${MY_USERNAME}/.tempdminstall
    fi
 }
 
@@ -93,14 +119,56 @@ bin_research()
       echo "Ricerca directory \"bin\" in corso..."
    fi
 
-   # Ottengo l'url della directory "bin"
-   BIN_DIR="${DATA_PATH}${EXTRACTED_DIRECTORY}bin/"
-
-   # Controllo se la modalità verbosa è attiva
-   if [ $VERBOSE = "YES" ]
+   # Controllo se la modalità "Zip Compression" è impostata su "YES"
+   if [ $ZIP_COMPRESSION = "YES" ]
    then
-      # Informo l'utente delle istruzioni che sto eseguendo
-      echo "Directory dei bin trovata: ${BIN_DIR}"
+      # Ottengo l'url della directory "bin"
+      BIN_DIR="${URL_EXTRACTED_DIRECTORY}bin/"
+
+      # Controllo se la cartella dei bin esiste
+      if [ -d $BIN_DIR ]
+      then
+         # Controllo se la modalità verbosa è attiva
+         if [ $VERBOSE = "YES" ]
+         then
+            # Informo l'utente delle istruzioni che sto eseguendo
+            echo "Directory dei bin trovata: ${BIN_DIR}"
+         fi
+      else
+         # Imposto come cartella dei bin la cartella principale
+         BIN_DIR=$URL_EXTRACTED_DIRECTORY
+
+         # Controllo se la modalità verbosa è attiva
+         if [ $VERBOSE = "YES" ]
+         then
+            # Informo l'utente delle istruzioni che sto eseguendo
+            echo "Cartella dei bin non trovata, ricerca dell'eseguibile nella cartella principale..."
+         fi
+      fi
+   else
+      # Ottengo l'url della directory "bin"
+      BIN_DIR="${DATA_PATH}${EXTRACTED_DIRECTORY}bin/"
+
+      # Controllo se la cartella dei bin esiste
+      if [ -d $BIN_DIR ]
+      then
+         # Controllo se la modalità verbosa è attiva
+         if [ $VERBOSE = "YES" ]
+         then
+            # Informo l'utente delle istruzioni che sto eseguendo
+            echo "Directory dei bin trovata: ${BIN_DIR}"
+         fi
+      else
+         # Imposto come cartella dei bin la cartella principale
+         BIN_DIR=${DATA_PATH}${EXTRACTED_DIRECTORY}
+
+         # Controllo se la modalità verbosa è attiva
+         if [ $VERBOSE = "YES" ]
+         then
+            # Informo l'utente delle istruzioni che sto eseguendo
+            echo "Cartella dei bin non trovata, ricerca dell'eseguibile nella cartella principale..."
+         fi
+      fi
    fi
 }
 
@@ -111,8 +179,9 @@ bin_linker()
    # Scorro tutti i file della directory dei bin
    for file in ${BIN_DIR}*
    do
-      # Controllo se il file è un eseguibile
-      if [ -x $file ]
+      # Controllo se il file è un eseguibile adatto da poter creare
+      # un collegamento nella path dei bin
+      if [ -x $file ] && [ ! -d $file ] && [[ "$file" != *"."* ]]
       then
          # Controllo se la modalità verbosa è attiva
          if [ $VERBOSE = "YES" ]
@@ -126,8 +195,19 @@ bin_linker()
          ln -sf "$file" "$BIN_PATH"
 
          # Ottengo il nome dell'eseguibile
-         echo $file | cut -d"/" -f7 > .temp.txt
-         LINKED_FILENAME=`head -1 .temp.txt`
+         echo $file | cut -d"/" -f7 > /home/${MY_USERNAME}/.tempdminstall
+         LINKED_FILENAME=`head -1 /home/${MY_USERNAME}/.tempdminstall`
+
+         # Controllo se il nome dell'eseguibile è stato ottenuto correttamente
+         if [ -z $LINKED_FILENAME ]
+         then
+            # Riottengo il nome dell'eseguibile
+            echo $file | cut -d"/" -f6 > /home/${MY_USERNAME}/.tempdminstall
+            LINKED_FILENAME=`head -1 /home/${MY_USERNAME}/.tempdminstall`
+         fi
+
+         # Rimuovo il file temporaneo generato
+         rm /home/${MY_USERNAME}/.tempdminstall
       fi
    done
 }
@@ -139,14 +219,109 @@ app_creation()
    if [ $VERBOSE = "YES" ]
    then
       # Informo l'utente delle istruzioni che sto eseguendo
-      echo "Ottengo l'url del file in formato \"png\" per impostare l'immagine dell'applicazione"
+      echo "Ottengo l'url dell'immagine dell'applicazione in formato \"png\""
    fi
 
-   # Ottengo il nome del file "png"
+   # Ottengo il nome dell'immagine "png"
    PNG_FILE="${LINKED_FILENAME}.png"
 
-   # Ottengo l'url del file "png"
-   PNG_FILE_URL=`find "${DATA_PATH}${EXTRACTED_DIRECTORY}" | grep "${PNG_FILE}$"`
+   # Controllo se la modalità "Zip Compression" è impostata su "YES"
+   if [ $ZIP_COMPRESSION = "YES" ]
+   then
+      find "${URL_EXTRACTED_DIRECTORY}" | grep "${PNG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+      # Ottengo l'url dell'immagine
+      FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+
+      # Controllo se l'immagine esiste
+      if [ ! -f "$FILE_URL" ]
+      then
+         # Ottengo il nome dell'immagine "png"
+         PNG_FILE="${LINKED_FILENAME}48.png"
+
+         # Cerco l'immagine del programma
+         find "${URL_EXTRACTED_DIRECTORY}" | grep "${PNG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+         # Ottengo l'url dell'immagine del programma
+         FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+      fi
+   else
+      # Ottengo l'url dell'immagine "png"
+      find "${DATA_PATH}${EXTRACTED_DIRECTORY}" | grep "${PNG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+      # Ottengo l'url dell'immagine
+      FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+
+      # Controllo se l'immagine esiste
+      if [ ! -f "$FILE_URL" ]
+      then
+         # Ottengo il nome dell'immagine "png"
+         PNG_FILE="${LINKED_FILENAME}48.png"
+
+         # Cerco l'immagine del programma
+         find "${DATA_PATH}${EXTRACTED_DIRECTORY}" | grep "${PNG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+         # Ottengo l'url dell'immagine del programma
+         FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+      fi
+   fi
+
+   # Controllo se l'immagine dell'applicazione in formato "png" è stata ottenuta correttamente
+   if [ "$?" -ne "0" ]
+   then
+      # Controllo se la modalità verbosa è attiva
+      if [ $VERBOSE = "YES" ]
+      then
+         # Informo l'utente delle istruzioni che sto eseguendo
+         echo "Immagine \"png\" non trovata!"
+         echo "Ottengo l'url dell'immagine dell'applicazione in formato \"jpeg\""
+      fi
+
+      # Ottengo il nome dell'immagine "jpeg"
+      JPEG_FILE="${LINKED_FILENAME}.jpeg"
+
+      # Controllo se la modalità "Zip Compression" è impostata su "YES"
+      if [ $ZIP_COMPRESSION = "YES" ]
+      then
+         # Ottengo l'url dell'immagine "jpeg"
+         find "${URL_EXTRACTED_DIRECTORY}" | grep "${JPEG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+         # Ottengo l'url dell'immagine
+         FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+
+         # Controllo se l'immagine esiste
+         if [ ! -f "$FILE_URL" ]
+         then
+            # Ottengo il nome dell'immagine "jpeg"
+            JPEG_FILE="${LINKED_FILENAME}48.jpeg"
+
+            # Cerco l'immagine del programma
+            find "${URL_EXTRACTED_DIRECTORY}" | grep "${JPEG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+            # Ottengo l'url dell'immagine del programma
+            FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+         fi
+      else
+         # Ottengo l'url dell'immagine "jpeg"
+         find "${DATA_PATH}${EXTRACTED_DIRECTORY}" | grep "${JPEG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+         # Ottengo l'url dell'immagine
+         FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+
+         # Controllo se l'immagine esiste
+         if [ ! -f "$FILE_URL" ]
+         then
+            # Ottengo il nome dell'immagine "jpeg"
+            JPEG_FILE="${LINKED_FILENAME}48.jpeg"
+
+            # Cerco l'immagine del programma
+            find "${DATA_PATH}${EXTRACTED_DIRECTORY}" | grep "${JPEG_FILE}$" > /home/${MY_USERNAME}/.tempdminstall
+
+            # Ottengo l'url dell'immagine del programma
+            FILE_URL=`sed -n 1p /home/${MY_USERNAME}/.tempdminstall`
+         fi
+      fi
+   fi
 
    # Controllo se la modalità verbosa è attiva
    if [ $VERBOSE = "YES" ]
@@ -163,8 +338,11 @@ Type=Application
 Terminal=false
 Exec=${BIN_DIR}${LINKED_FILENAME}
 Name=${APPLICATION_NAME}
-Icon=${PNG_FILE_URL}
-Comment=Applicazione generata dal programma \"dminstall\" sviluppata da Manuel Millefiori!" | tee ${APPLICATION_PATH}${LINKED_FILENAME}.desktop > /dev/null
+Icon=${FILE_URL}
+Comment=${APPLICATION_NAME}
+Installed=Installato dal programma \"dminstall\" sviluppato da Manuel Millefiori" | tee ${APPLICATION_PATH}${LINKED_FILENAME}.desktop > /dev/null
+
+   rm /home/${MY_USERNAME}/.tempdminstall
 }
 
 # Controllo se lo script è stato eseguito con i permessi d'amministratore
@@ -177,11 +355,14 @@ then
    exit 1
 fi
 
-# Imposto di predefinito la modalità verbosa a "NO"
+# Imposto di predefinito la modalità "Verbose" a "NO"
 VERBOSE="NO"
 
-# Imposto di predefinito la modalità application a "NO"
+# Imposto di predefinito la modalità "Application" a "NO"
 APPLICATION="NO"
+
+# Imposto di predefinito la modalità "Zip Compression" a "NO"
+ZIP_COMPRESSION="NO"
 
 # Controllo se l'utente ha avviato correttamente il programma
 if [ -z "$1" ]
@@ -208,7 +389,7 @@ Lista dei vari argomenti e degli utilizzi associati:
    --help              Stampa delle modalità d'utilizzo del programma.
 Autore: Manuel Millefiori
 Data: 2021-10-08
-Versione: 1.0"
+Versione: 1.1"
 
    # Chiudo il programma correttamente con codice d'uscita "0"
    exit 0
@@ -264,7 +445,8 @@ DATA_PATH="/usr/local/etc/"
 BIN_PATH="/usr/local/bin/"
 
 # Imposto la path per le applicazioni
-APPLICATION_PATH="/home/${USER}/.local/share/applications/"
+MY_USERNAME=`tail -1 /etc/passwd | cut -d: -f1`
+APPLICATION_PATH="/home/${MY_USERNAME}/.local/share/applications/"
 
 # Inizializzo il nome dell'archivio come il primo argomento
 ARCHIVE=$1
