@@ -256,6 +256,9 @@ bin_linker()
             LINKED_FILENAME=`head -1 /home/${MY_USERNAME}/.tempdminstall`
          fi
 
+         # Ottengo l'url dell'eseguibile
+         EXECUTABLE="${BIN_DIR}${LINKED_FILENAME}"
+
          # Converto il nome del file in minuscolo
          LINKED_FILENAME=`echo $LINKED_FILENAME | tr '[:upper:]' '[:lower:]'`
 
@@ -389,7 +392,7 @@ Encoding=UTF-8
 Version=1.0
 Type=Application
 Terminal=false
-Exec=${BIN_DIR}${LINKED_FILENAME}
+Exec=${EXECUTABLE}
 Name=${APPLICATION_NAME}
 Icon=${FILE_URL}
 Comment=${APPLICATION_NAME}
