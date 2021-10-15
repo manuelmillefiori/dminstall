@@ -1,4 +1,4 @@
-### Eseguire le seguenti istruzioni nell'attuale directory per aggiungere il programma nella path e poterlo eseguireda qualsiasi directory:
+### Eseguire le seguenti istruzioni per aggiungere il programma alla path:
 ```bash
 git clone https://github.com/manuelmillefiori/dminstall.git dminstall
 sudo chmod +x dminstall/dminstall.sh
