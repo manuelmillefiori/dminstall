@@ -494,7 +494,7 @@ then
 fi
 
 # Imposto la path per i dati
-DATA_PATH="/usr/local/etc/"
+DATA_PATH="/opt/"
 
 # Imposto la path per i bin
 BIN_PATH="/usr/local/bin/"
