@@ -202,6 +202,9 @@ bin_linker()
                   # Informo l'utente delle istruzioni che sto eseguendo
                   echo "Creo un collegamento dell'eseguibile \"${file}\" nella directory \"${BIN_PATH}\""
                fi
+               
+               # Salvo l'url completo dell'eseguibile
+               EXECUTABLEE="$file"
 
                # Creo un collegamento nella path dei bin locali
                # dell'eseguibile del programma
@@ -255,9 +258,6 @@ bin_linker()
             echo $file | cut -d"/" -f6 > /home/${MY_USERNAME}/.tempdminstall
             LINKED_FILENAME=`head -1 /home/${MY_USERNAME}/.tempdminstall`
          fi
-
-         # Ottengo l'url dell'eseguibile
-         EXECUTABLE="${BIN_DIR}${LINKED_FILENAME}"
 
          # Converto il nome del file in minuscolo
          LINKED_FILENAME=`echo $LINKED_FILENAME | tr '[:upper:]' '[:lower:]'`
