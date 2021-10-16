@@ -395,8 +395,7 @@ Terminal=false
 Exec=${EXECUTABLE}
 Name=${APPLICATION_NAME}
 Icon=${FILE_URL}
-Comment=${APPLICATION_NAME}
-Installed=Installato dal programma \"dminstall\" sviluppato da Manuel Millefiori" | tee ${APPLICATION_PATH}${LINKED_FILENAME}.desktop > /dev/null
+Comment=${APPLICATION_NAME}" | tee ${APPLICATION_PATH}${LINKED_FILENAME}.desktop > /dev/null
 
    rm /home/${MY_USERNAME}/.tempdminstall
 }
